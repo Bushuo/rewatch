@@ -1,0 +1,57 @@
+---
+name: Private release
+on: push
+
+concurrency:
+  group: ${{ github.ref }}-release
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: macos-latest
+    env:
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Install zig
+        uses: korandoru/setup-zig@v1
+        with:
+          zig-version: 0.11.0
+      - name: Install Rust targets
+        shell: bash
+        run: |
+          rustup target add x86_64-unknown-linux-musl \
+            aarch64-unknown-linux-musl \
+            aarch64-apple-darwin \
+            x86_64-apple-darwin \
+            x86_64-pc-windows-gnu
+      - name: Install cargo zigbuild
+        run: cargo install --locked cargo-zigbuild
+      - name: macOS - build universal2
+        run: cargo zigbuild --target universal2-apple-darwin --release
+      - name: Linux - build x86_64 musl
+        run: cargo zigbuild --target x86_64-unknown-linux-musl --release
+      - name: Linux - build aarch64 musl
+        run: cargo zigbuild --target aarch64-unknown-linux-musl --release
+      - name: Windows - build x86_64 musl
+        run: cargo zigbuild --target x86_64-pc-windows-gnu --release
+      - name: Move / Rename Artifacts
+        run: |
+          mv target/x86_64-unknown-linux-musl/release/rewatch ./rewatch-linux
+          mv target/aarch64-unknown-linux-musl/release/rewatch ./rewatch-linux-arm64
+          mv target/universal2-apple-darwin/release/rewatch ./rewatch-macos
+          mv target/x86_64-pc-windows-gnu/release/rewatch.exe ./rewatch-windows.exe
+      - uses: actions/setup-node@v4
+        with:
+          always-auth: true
+          registry-url: "https://npm.pkg.github.com"
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
