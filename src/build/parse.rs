@@ -273,9 +273,9 @@ pub fn parser_args(
         &filter_ppx_flags(&config.ppx_flags, contents),
         &config.name,
     );
-    let jsx_args = root_config.get_jsx_args();
-    let jsx_module_args = root_config.get_jsx_module_args();
-    let jsx_mode_args = root_config.get_jsx_mode_args();
+    let jsx_args = config.get_jsx_args();
+    let jsx_module_args = config.get_jsx_module_args();
+    let jsx_mode_args = config.get_jsx_mode_args();
     let uncurried_args = root_config.get_uncurried_args(version);
     let bsc_flags = config::flatten_flags(&config.bsc_flags);
 
